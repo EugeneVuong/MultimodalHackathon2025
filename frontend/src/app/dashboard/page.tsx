@@ -139,7 +139,7 @@ export default function SecurityDashboard() {
                         micEnabled: false,
                         webcamEnabled: false,
                         name: `${stream.name} Viewer`,
-                        mode: Constants.modes.RECV_ONLY,
+                        mode: Constants.modes.RECV_ONLY as "RECV_ONLY",
                         debugMode: true,
                       }}
                       token={authToken}
