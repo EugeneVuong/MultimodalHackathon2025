@@ -12,6 +12,8 @@ import {
   WifiOff,
   Plus,
 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +40,159 @@ const formatMeetingId = (id: string) => {
   return id.toLowerCase().replace(/[^a-z0-9-]/g, "");
 };
 
+// Helper functions inserted here
+function LSContainer({
+  streamId,
+  onLeave,
+  onSnapshot,
+}: {
+  streamId: string;
+  onLeave: () => void;
+  onSnapshot: (streamId: string, dataUrl: string) => void;
+}) {
+  const { join, meeting } = useMeeting({
+    onMeetingJoined: () => console.log("Joined meeting:", streamId),
+    onMeetingLeft: onLeave,
+    onError: (error) => console.error("Meeting error:", error),
+  });
+
+  useEffect(() => {
+    if (!meeting) {
+      join();
+    }
+  }, [join, meeting]);
+
+  return meeting ? (
+    <StreamView streamId={streamId} onSnapshot={onSnapshot} />
+  ) : (
+    <div className="absolute inset-0 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800">
+      <p>Initializing connection...</p>
+    </div>
+  );
+}
+
+function Participant({
+  participantId,
+  streamId,
+  onSnapshot,
+}: {
+  participantId: string;
+  streamId: string;
+  onSnapshot: (streamId: string, dataUrl: string) => void;
+}) {
+  const { webcamStream, micStream, webcamOn, micOn, displayName } = useParticipant(participantId);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current && webcamStream && webcamOn) {
+      videoRef.current.srcObject = new MediaStream([webcamStream.track]);
+      videoRef.current.play().catch(console.error);
+      const snapshotTimer = setTimeout(() => {
+        captureSnapshot();
+      }, 2000);
+      return () => clearTimeout(snapshotTimer);
+    }
+  }, [webcamStream, webcamOn]);
+
+  useEffect(() => {
+    if (audioRef.current && micStream && micOn) {
+      audioRef.current.srcObject = new MediaStream([micStream.track]);
+      audioRef.current.play().catch(console.error);
+    }
+  }, [micStream, micOn]);
+
+  const captureSnapshot = () => {
+    if (videoRef.current) {
+      const canvas = document.createElement("canvas");
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      canvas.getContext("2d")?.drawImage(videoRef.current, 0, 0);
+      onSnapshot(streamId, canvas.toDataURL("image/jpeg", 0.8));
+    }
+  };
+
+  return (
+    <div className="relative w-full h-full min-h-[300px] bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden">
+      <audio ref={audioRef} autoPlay />
+      {webcamOn ? (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          className="w-full h-full object-cover"
+          data-participant={participantId}
+        />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <p className="text-neutral-500">Camera Off</p>
+        </div>
+      )}
+      <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-white">
+        <p className="text-sm">
+          {displayName} {micOn && "🎤"}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function StreamView({
+  streamId,
+  onSnapshot,
+}: {
+  streamId: string;
+  onSnapshot: (streamId: string, dataUrl: string) => void;
+}) {
+  const { participants } = useMeeting();
+  const participantArray = Array.from(participants.values());
+  const snapshotInterval = useRef<NodeJS.Timeout>();
+
+  useEffect(() => {
+    snapshotInterval.current = setInterval(() => {
+      const firstParticipant = participantArray[0];
+      if (firstParticipant) {
+        const videoElement = document.querySelector<HTMLVideoElement>(`video[data-participant="${firstParticipant.id}"]`);
+        if (videoElement) {
+          const canvas = document.createElement("canvas");
+          canvas.width = videoElement.videoWidth;
+          canvas.height = videoElement.videoHeight;
+          canvas.getContext("2d")?.drawImage(videoElement, 0, 0);
+          onSnapshot(streamId, canvas.toDataURL("image/jpeg", 0.8));
+        }
+      }
+    }, 10000);
+    return () => {
+      if (snapshotInterval.current) {
+        clearInterval(snapshotInterval.current);
+      }
+    };
+  }, [participantArray, onSnapshot, streamId]);
+
+  if (participantArray.length === 0) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800">
+        <div className="text-neutral-500 text-center p-4">
+          <p>Waiting for stream to start...</p>
+          <p className="text-sm mt-2">No active participants in the stream</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full grid grid-cols-1 gap-4 p-4">
+      {participantArray
+        .filter((p) => p.mode === Constants.modes.SEND_AND_RECV)
+        .map((p) => (
+          <Participant key={p.id} participantId={p.id} streamId={streamId} onSnapshot={onSnapshot} />
+        ))}
+    </div>
+  );
+}
+
+// End of helper functions block
+
 export default function SecurityDashboard() {
   const [selectedStreams, setSelectedStreams] = useState<Stream[]>([]);
   const [streamInput, setStreamInput] = useState("");
@@ -49,6 +204,21 @@ export default function SecurityDashboard() {
     { id: 1, message: "Movement detected in Zone A", time: "2 mins ago" },
     { id: 2, message: "Person jumping in Zone B", time: "5 mins ago" },
   ]);
+
+  // NEW STATE FOR ACTIONS
+  const [actionInput, setActionInput] = useState("");
+  const [actions, setActions] = useState<{ id: number; description: string }[]>([]);
+
+  const addAction = () => {
+    if (!actionInput.trim()) return;
+    const newAction = { id: Date.now(), description: actionInput.trim() };
+    setActions(prev => [...prev, newAction]);
+    setActionInput("");
+  };
+
+  const removeAction = (id: number) => {
+    setActions(prev => prev.filter(action => action.id !== id));
+  };
 
   const connectToStream = () => {
     if (!streamInput.trim()) {
@@ -192,9 +362,32 @@ export default function SecurityDashboard() {
               <Search className="absolute left-3 top-3 h-4 w-4 text-neutral-500 dark:text-neutral-400" />
               <Input
                 placeholder="What should I look at? (e.g. 'Alert me if someone jumps')"
-                className="pl-10"
+                className="pl-10 mb-2"
+                value={actionInput}
+                onChange={(e) => setActionInput(e.target.value)}
+                onKeyDown={(e) => { if(e.key === 'Enter' && actionInput.trim() !== '') { e.preventDefault(); addAction(); } }}
               />
+              
             </div>
+            <div className="grid grid-cols-6 gap-2">
+              <Button onClick={addAction} className="mb-2">Add Action</Button>
+              {actions.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary">Actions ({actions.length})</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                  {actions.map((action) => (
+                    <DropdownMenuItem key={action.id} onSelect={() => removeAction(action.id)}>
+                      <span>{action.description}</span>
+                      <Trash2 className="ml-auto h-4 w-4 text-red-500" />
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            </div>
+            
           </CardContent>
         </Card>
       </div>
@@ -283,213 +476,6 @@ export default function SecurityDashboard() {
           </CardContent>
         </Tabs>
       </Card>
-    </div>
-  );
-}
-
-function LSContainer({
-  streamId,
-  onLeave,
-  onSnapshot,
-}: {
-  streamId: string;
-  onLeave: () => void;
-  onSnapshot: (streamId: string, dataUrl: string) => void;
-}) {
-  const { join, meeting } = useMeeting({
-    onMeetingJoined: () => console.log("Joined meeting:", streamId),
-    onMeetingLeft: onLeave,
-    onError: (error) => console.error("Meeting error:", error),
-  });
-
-  useEffect(() => {
-    // Only join if not already in a meeting
-    if (!meeting) {
-      join();
-    }
-  }, [join, meeting]); // Add meeting to dependencies
-
-  return meeting ? (
-    <StreamView streamId={streamId} onSnapshot={onSnapshot} />
-  ) : (
-    <div className="absolute inset-0 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800">
-      <p>Initializing connection...</p>
-    </div>
-  );
-}
-
-function LiveFeedContainer() {
-  const [joinError, setJoinError] = useState<string | null>(null);
-
-  const { join } = useMeeting({
-    onMeetingJoined: () => {
-      console.log("Successfully joined meeting");
-
-      setJoinError(null);
-    },
-    onError: (error) => {
-      console.error("Meeting error", error);
-      setJoinError(error.message);
-    },
-  });
-
-  useEffect(() => {
-    try {
-      join();
-    } catch (error) {
-      console.error("Failed to join meeting:", error);
-      setJoinError("Failed to join meeting");
-    }
-  }, [join]);
-
-  if (joinError) {
-    return (
-      <div className="absolute inset-0 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800">
-        <div className="text-red-500 text-center p-4">
-          <p>Error joining stream: {joinError}</p>
-          <button
-            onClick={() => join()}
-            className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return <StreamView />;
-}
-
-function Participant({
-  participantId,
-  streamId,
-  onSnapshot,
-}: {
-  participantId: string;
-  streamId: string;
-  onSnapshot: (streamId: string, dataUrl: string) => void;
-}) {
-  const { webcamStream, micStream, webcamOn, micOn, displayName } =
-    useParticipant(participantId);
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    if (videoRef.current && webcamStream && webcamOn) {
-      videoRef.current.srcObject = new MediaStream([webcamStream.track]);
-      videoRef.current.play().catch(console.error);
-
-      // Automatically capture snapshot after 2 seconds
-      const snapshotTimer = setTimeout(() => {
-        captureSnapshot();
-      }, 2000);
-
-      return () => clearTimeout(snapshotTimer);
-    }
-  }, [webcamStream, webcamOn]);
-
-  useEffect(() => {
-    if (audioRef.current && micStream && micOn) {
-      audioRef.current.srcObject = new MediaStream([micStream.track]);
-      audioRef.current.play().catch(console.error);
-    }
-  }, [micStream, micOn]);
-
-  const captureSnapshot = () => {
-    if (videoRef.current) {
-      const canvas = document.createElement("canvas");
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      canvas.getContext("2d")?.drawImage(videoRef.current, 0, 0);
-      onSnapshot(streamId, canvas.toDataURL("image/jpeg", 0.8));
-    }
-  };
-
-  return (
-    <div className="relative w-full h-full min-h-[300px] bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden">
-      <audio ref={audioRef} autoPlay />
-      {webcamOn ? (
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          className="w-full h-full object-cover"
-          data-participant={participantId}
-        />
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <p className="text-neutral-500">Camera Off</p>
-        </div>
-      )}
-      <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-white">
-        <p className="text-sm">
-          {displayName} {micOn && "🎤"}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function StreamView({
-  streamId,
-  onSnapshot,
-}: {
-  streamId: string;
-  onSnapshot: (streamId: string, dataUrl: string) => void;
-}) {
-  const { participants } = useMeeting();
-  const participantArray = Array.from(participants.values());
-  const snapshotInterval = useRef<NodeJS.Timeout>();
-
-  useEffect(() => {
-    // Refresh thumbnail every 10 seconds
-    snapshotInterval.current = setInterval(() => {
-      const firstParticipant = participantArray[0];
-      if (firstParticipant) {
-        const videoElement = document.querySelector<HTMLVideoElement>(
-          `video[data-participant="${firstParticipant.id}"]`
-        );
-        if (videoElement) {
-          const canvas = document.createElement("canvas");
-          canvas.width = videoElement.videoWidth;
-          canvas.height = videoElement.videoHeight;
-          canvas.getContext("2d")?.drawImage(videoElement, 0, 0);
-          onSnapshot(streamId, canvas.toDataURL("image/jpeg", 0.8));
-        }
-      }
-    }, 10000);
-
-    return () => {
-      if (snapshotInterval.current) {
-        clearInterval(snapshotInterval.current);
-      }
-    };
-  }, [participantArray]);
-
-  if (participantArray.length === 0) {
-    return (
-      <div className="absolute inset-0 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800">
-        <div className="text-neutral-500 text-center p-4">
-          <p>Waiting for stream to start...</p>
-          <p className="text-sm mt-2">No active participants in the stream</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="h-full grid grid-cols-1 gap-4 p-4">
-      {participantArray
-        .filter((p) => p.mode === Constants.modes.SEND_AND_RECV)
-        .map((p) => (
-          <Participant
-            key={p.id}
-            participantId={p.id}
-            streamId={streamId}
-            onSnapshot={onSnapshot}
-          />
-        ))}
     </div>
   );
 }
