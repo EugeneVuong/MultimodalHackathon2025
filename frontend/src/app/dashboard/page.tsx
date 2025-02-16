@@ -1,90 +1,106 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef } from "react"
-import { Search, Bell, Camera, AlertCircle, MessageSquare, Grid, Wifi, WifiOff, Plus } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Button } from "@/components/ui/button"
-import { ChatInterface } from "@/components/chat-interface"
-import { MeetingProvider, useMeeting, useParticipant, Constants } from "@videosdk.live/react-sdk"
+import { useState, useEffect, useRef } from "react";
+import {
+  Search,
+  Bell,
+  Camera,
+  AlertCircle,
+  MessageSquare,
+  Grid,
+  Wifi,
+  WifiOff,
+  Plus,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { ChatInterface } from "@/components/chat-interface";
+import {
+  MeetingProvider,
+  useMeeting,
+  useParticipant,
+  Constants,
+} from "@videosdk.live/react-sdk";
 
 interface Stream {
-  id: string
-  name: string
-  thumbnail?: string
+  id: string;
+  name: string;
+  thumbnail?: string;
 }
 
-const authToken =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGlrZXkiOiIzNjE1MTIzNi0zZDRjLTQwZGQtYjYzYy04MjJmN2JlNjE4MTQiLCJwZXJtaXNzaW9ucyI6WyJhbGxvd19qb2luIl0sImlhdCI6MTczOTY0OTUyOCwiZXhwIjoxODk3NDM3NTI4fQ.Tj27YZqz-bJHjlgWe0OpJD90Cw8CMmuKs1ZZHlXAaQM"
+const authToken = process.env.VIDEOSDK_TOKEN;
 
 const formatMeetingId = (id: string) => {
-  return id.toLowerCase().replace(/[^a-z0-9-]/g, '')
-}
+  return id.toLowerCase().replace(/[^a-z0-9-]/g, "");
+};
 
 export default function SecurityDashboard() {
-  const [selectedStreams, setSelectedStreams] = useState<Stream[]>([])
-  const [streamInput, setStreamInput] = useState("")
-  const [isConnected, setIsConnected] = useState(false)
-  const [availableStreams, setAvailableStreams] = useState<Stream[]>([])
-  const [isConnecting, setIsConnecting] = useState(false)
+  const [selectedStreams, setSelectedStreams] = useState<Stream[]>([]);
+  const [streamInput, setStreamInput] = useState("");
+  const [isConnected, setIsConnected] = useState(false);
+  const [availableStreams, setAvailableStreams] = useState<Stream[]>([]);
+  const [isConnecting, setIsConnecting] = useState(false);
 
   const [alerts, setAlerts] = useState([
     { id: 1, message: "Movement detected in Zone A", time: "2 mins ago" },
     { id: 2, message: "Person jumping in Zone B", time: "5 mins ago" },
-  ])
+  ]);
 
   const connectToStream = () => {
     if (!streamInput.trim()) {
-      alert("Please enter a stream ID")
-      return
+      alert("Please enter a stream ID");
+      return;
     }
 
-    const formattedId = formatMeetingId(streamInput)
-    
-    if (selectedStreams.some(s => s.id === formattedId)) {
-      alert("This stream is already connected")
-      return
+    const formattedId = formatMeetingId(streamInput);
+
+    if (selectedStreams.some((s) => s.id === formattedId)) {
+      alert("This stream is already connected");
+      return;
     }
 
-    const existingStream = availableStreams.find(s => s.id === formattedId)
+    const existingStream = availableStreams.find((s) => s.id === formattedId);
     const stream = existingStream || {
       id: formattedId,
-      name: `Stream ${formattedId}`
-    }
+      name: `Stream ${formattedId}`,
+    };
 
-    setSelectedStreams(prev => [...prev, stream])
-    
+    setSelectedStreams((prev) => [...prev, stream]);
+
     if (!existingStream) {
-      setAvailableStreams(prev => [...prev, stream])
+      setAvailableStreams((prev) => [...prev, stream]);
     }
-  }
+  };
 
   const disconnectStream = (streamId: string) => {
-    setSelectedStreams(prev => prev.filter(s => s.id !== streamId))
-  }
+    setSelectedStreams((prev) => prev.filter((s) => s.id !== streamId));
+  };
 
   const addNewStream = () => {
-    const newStreamId = `stream${availableStreams.length + 1}`
+    const newStreamId = `stream${availableStreams.length + 1}`;
     const newStream: Stream = {
       id: newStreamId,
       name: `New Stream ${availableStreams.length + 1}`,
-    }
-    setAvailableStreams((prev) => [...prev, newStream])
-  }
+    };
+    setAvailableStreams((prev) => [...prev, newStream]);
+  };
 
   const onStreamLeave = () => {
-    setIsConnected(false)
-    setSelectedStreams([])
-  }
+    setIsConnected(false);
+    setSelectedStreams([]);
+  };
 
   const updateThumbnail = (streamId: string, dataUrl: string) => {
-    setAvailableStreams(prev => prev.map(stream => 
-      stream.id === streamId ? {...stream, thumbnail: dataUrl} : stream
-    ))
-  }
+    setAvailableStreams((prev) =>
+      prev.map((stream) =>
+        stream.id === streamId ? { ...stream, thumbnail: dataUrl } : stream
+      )
+    );
+  };
 
   return (
     <div className="flex h-screen bg-white dark:bg-neutral-950">
@@ -101,15 +117,14 @@ export default function SecurityDashboard() {
                 className="flex-1"
               />
               <Button onClick={connectToStream}>Connect</Button>
-              <Badge variant={selectedStreams.length > 0 ? "default" : "secondary"} className="gap-1">
+              <Badge
+                variant={selectedStreams.length > 0 ? "default" : "secondary"}
+                className="gap-1"
+              >
                 {selectedStreams.length > 0 ? (
-                  <>
-                    {selectedStreams.length} streams connected
-                  </>
+                  <>{selectedStreams.length} streams connected</>
                 ) : (
-                  <>
-                    No streams connected
-                  </>
+                  <>No streams connected</>
                 )}
               </Badge>
             </div>
@@ -130,8 +145,7 @@ export default function SecurityDashboard() {
           <CardContent className="p-0 relative h-[calc(100%-4rem)]">
             {selectedStreams.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 h-full overflow-y-auto">
-                {selectedStreams.map(stream => (
-                  
+                {selectedStreams.map((stream) => (
                   <Card key={stream.id} className="relative h-64">
                     <MeetingProvider
                       config={{
@@ -144,8 +158,8 @@ export default function SecurityDashboard() {
                       }}
                       token={authToken}
                     >
-                      <LSContainer 
-                        streamId={stream.id} 
+                      <LSContainer
+                        streamId={stream.id}
                         onLeave={() => disconnectStream(stream.id)}
                         onSnapshot={updateThumbnail}
                       />
@@ -163,7 +177,9 @@ export default function SecurityDashboard() {
               </div>
             ) : (
               <div className="absolute inset-0 bg-neutral-100 flex items-center justify-center dark:bg-neutral-800">
-                <div className="text-neutral-500 dark:text-neutral-400">No active streams</div>
+                <div className="text-neutral-500 dark:text-neutral-400">
+                  No active streams
+                </div>
               </div>
             )}
           </CardContent>
@@ -174,7 +190,10 @@ export default function SecurityDashboard() {
           <CardContent className="p-4">
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-neutral-500 dark:text-neutral-400" />
-              <Input placeholder="What should I look at? (e.g. 'Alert me if someone jumps')" className="pl-10" />
+              <Input
+                placeholder="What should I look at? (e.g. 'Alert me if someone jumps')"
+                className="pl-10"
+              />
             </div>
           </CardContent>
         </Card>
@@ -208,19 +227,24 @@ export default function SecurityDashboard() {
                     <button
                       key={stream.id}
                       onClick={() => {
-                        if (selectedStreams.some(s => s.id === stream.id)) {
-                          alert("This stream is already connected")
-                          return
+                        if (selectedStreams.some((s) => s.id === stream.id)) {
+                          alert("This stream is already connected");
+                          return;
                         }
-                        setSelectedStreams(prev => [...prev, stream])
-                        setStreamInput(stream.id)
+                        setSelectedStreams((prev) => [...prev, stream]);
+                        setStreamInput(stream.id);
                       }}
                       className={`relative aspect-video bg-muted rounded-lg overflow-hidden hover:ring-2 hover:ring-ring ${
-                        selectedStreams.some(s => s.id === stream.id) ? "ring-2 ring-neutral-900 dark:ring-neutral-50" : ""
+                        selectedStreams.some((s) => s.id === stream.id)
+                          ? "ring-2 ring-neutral-900 dark:ring-neutral-50"
+                          : ""
                       }`}
                     >
                       <img
-                        src={stream.thumbnail || `/placeholder.svg?height=120&width=160&text=${stream.name}`}
+                        src={
+                          stream.thumbnail ||
+                          `/placeholder.svg?height=120&width=160&text=${stream.name}`
+                        }
                         alt={`${stream.name} Thumbnail`}
                         className="w-full h-full object-cover"
                       />
@@ -243,9 +267,14 @@ export default function SecurityDashboard() {
                 </h3>
                 <ScrollArea className="h-[calc(100vh-12rem)]">
                   {alerts.map((alert) => (
-                    <div key={alert.id} className="mb-4 pb-4 border-b last:border-b-0">
+                    <div
+                      key={alert.id}
+                      className="mb-4 pb-4 border-b last:border-b-0"
+                    >
                       <div className="font-medium">{alert.message}</div>
-                      <div className="text-sm text-neutral-500 dark:text-neutral-400">{alert.time}</div>
+                      <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                        {alert.time}
+                      </div>
                     </div>
                   ))}
                 </ScrollArea>
@@ -255,13 +284,17 @@ export default function SecurityDashboard() {
         </Tabs>
       </Card>
     </div>
-  )
+  );
 }
 
-function LSContainer({ streamId, onLeave, onSnapshot }: { 
-  streamId: string
-  onLeave: () => void
-  onSnapshot: (streamId: string, dataUrl: string) => void
+function LSContainer({
+  streamId,
+  onLeave,
+  onSnapshot,
+}: {
+  streamId: string;
+  onLeave: () => void;
+  onSnapshot: (streamId: string, dataUrl: string) => void;
 }) {
   const { join, meeting } = useMeeting({
     onMeetingJoined: () => console.log("Joined meeting:", streamId),
@@ -277,10 +310,7 @@ function LSContainer({ streamId, onLeave, onSnapshot }: {
   }, [join, meeting]); // Add meeting to dependencies
 
   return meeting ? (
-    <StreamView 
-      streamId={streamId}
-      onSnapshot={onSnapshot}
-    />
+    <StreamView streamId={streamId} onSnapshot={onSnapshot} />
   ) : (
     <div className="absolute inset-0 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800">
       <p>Initializing connection...</p>
@@ -289,35 +319,35 @@ function LSContainer({ streamId, onLeave, onSnapshot }: {
 }
 
 function LiveFeedContainer() {
-  const [joinError, setJoinError] = useState<string | null>(null)
-  
+  const [joinError, setJoinError] = useState<string | null>(null);
+
   const { join } = useMeeting({
     onMeetingJoined: () => {
-      console.log("Successfully joined meeting")
-      
-      setJoinError(null)
+      console.log("Successfully joined meeting");
+
+      setJoinError(null);
     },
     onError: (error) => {
-      console.error("Meeting error", error)
-      setJoinError(error.message)
+      console.error("Meeting error", error);
+      setJoinError(error.message);
     },
-  })
+  });
 
   useEffect(() => {
     try {
-      join()
+      join();
     } catch (error) {
-      console.error("Failed to join meeting:", error)
-      setJoinError("Failed to join meeting")
+      console.error("Failed to join meeting:", error);
+      setJoinError("Failed to join meeting");
     }
-  }, [join])
+  }, [join]);
 
   if (joinError) {
     return (
       <div className="absolute inset-0 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800">
         <div className="text-red-500 text-center p-4">
           <p>Error joining stream: {joinError}</p>
-          <button 
+          <button
             onClick={() => join()}
             className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
           >
@@ -325,51 +355,56 @@ function LiveFeedContainer() {
           </button>
         </div>
       </div>
-    )
+    );
   }
 
-  return <StreamView />
+  return <StreamView />;
 }
 
-function Participant({ participantId, streamId, onSnapshot }: { 
-  participantId: string
-  streamId: string
-  onSnapshot: (streamId: string, dataUrl: string) => void
+function Participant({
+  participantId,
+  streamId,
+  onSnapshot,
+}: {
+  participantId: string;
+  streamId: string;
+  onSnapshot: (streamId: string, dataUrl: string) => void;
 }) {
-  const { webcamStream, micStream, webcamOn, micOn, displayName } = useParticipant(participantId)
-  const audioRef = useRef<HTMLAudioElement>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const { webcamStream, micStream, webcamOn, micOn, displayName } =
+    useParticipant(participantId);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (videoRef.current && webcamStream && webcamOn) {
-      videoRef.current.srcObject = new MediaStream([webcamStream.track])
-      videoRef.current.play().catch(console.error)
-      
+      videoRef.current.srcObject = new MediaStream([webcamStream.track]);
+      videoRef.current.play().catch(console.error);
+
       // Automatically capture snapshot after 2 seconds
       const snapshotTimer = setTimeout(() => {
-        captureSnapshot()
-      }, 2000)
-      
-      return () => clearTimeout(snapshotTimer)
+        captureSnapshot();
+      }, 2000);
+
+      return () => clearTimeout(snapshotTimer);
     }
-  }, [webcamStream, webcamOn])
+  }, [webcamStream, webcamOn]);
 
   useEffect(() => {
     if (audioRef.current && micStream && micOn) {
-      audioRef.current.srcObject = new MediaStream([micStream.track])
-      audioRef.current.play().catch(console.error)
+      audioRef.current.srcObject = new MediaStream([micStream.track]);
+      audioRef.current.play().catch(console.error);
     }
-  }, [micStream, micOn])
+  }, [micStream, micOn]);
 
   const captureSnapshot = () => {
     if (videoRef.current) {
-      const canvas = document.createElement('canvas')
-      canvas.width = videoRef.current.videoWidth
-      canvas.height = videoRef.current.videoHeight
-      canvas.getContext('2d')?.drawImage(videoRef.current, 0, 0)
-      onSnapshot(streamId, canvas.toDataURL('image/jpeg', 0.8))
+      const canvas = document.createElement("canvas");
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      canvas.getContext("2d")?.drawImage(videoRef.current, 0, 0);
+      onSnapshot(streamId, canvas.toDataURL("image/jpeg", 0.8));
     }
-  }
+  };
 
   return (
     <div className="relative w-full h-full min-h-[300px] bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden">
@@ -393,41 +428,44 @@ function Participant({ participantId, streamId, onSnapshot }: {
         </p>
       </div>
     </div>
-  )
+  );
 }
 
-function StreamView({ streamId, onSnapshot }: { 
-  streamId: string
-  onSnapshot: (streamId: string, dataUrl: string) => void 
+function StreamView({
+  streamId,
+  onSnapshot,
+}: {
+  streamId: string;
+  onSnapshot: (streamId: string, dataUrl: string) => void;
 }) {
-  const { participants } = useMeeting()
-  const participantArray = Array.from(participants.values())
-  const snapshotInterval = useRef<NodeJS.Timeout>()
+  const { participants } = useMeeting();
+  const participantArray = Array.from(participants.values());
+  const snapshotInterval = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     // Refresh thumbnail every 10 seconds
     snapshotInterval.current = setInterval(() => {
-      const firstParticipant = participantArray[0]
+      const firstParticipant = participantArray[0];
       if (firstParticipant) {
         const videoElement = document.querySelector<HTMLVideoElement>(
           `video[data-participant="${firstParticipant.id}"]`
-        )
+        );
         if (videoElement) {
-          const canvas = document.createElement('canvas')
-          canvas.width = videoElement.videoWidth
-          canvas.height = videoElement.videoHeight
-          canvas.getContext('2d')?.drawImage(videoElement, 0, 0)
-          onSnapshot(streamId, canvas.toDataURL('image/jpeg', 0.8))
+          const canvas = document.createElement("canvas");
+          canvas.width = videoElement.videoWidth;
+          canvas.height = videoElement.videoHeight;
+          canvas.getContext("2d")?.drawImage(videoElement, 0, 0);
+          onSnapshot(streamId, canvas.toDataURL("image/jpeg", 0.8));
         }
       }
-    }, 10000)
+    }, 10000);
 
     return () => {
       if (snapshotInterval.current) {
-        clearInterval(snapshotInterval.current)
+        clearInterval(snapshotInterval.current);
       }
-    }
-  }, [participantArray])
+    };
+  }, [participantArray]);
 
   if (participantArray.length === 0) {
     return (
@@ -437,7 +475,7 @@ function StreamView({ streamId, onSnapshot }: {
           <p className="text-sm mt-2">No active participants in the stream</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -445,7 +483,7 @@ function StreamView({ streamId, onSnapshot }: {
       {participantArray
         .filter((p) => p.mode === Constants.modes.SEND_AND_RECV)
         .map((p) => (
-          <Participant 
+          <Participant
             key={p.id}
             participantId={p.id}
             streamId={streamId}
@@ -453,5 +491,5 @@ function StreamView({ streamId, onSnapshot }: {
           />
         ))}
     </div>
-  )
+  );
 }

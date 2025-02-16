@@ -81,6 +81,7 @@ def generate_text_embedding(text, api_key="257203c442a94c07ff6f1776f8cfbc6ea6a29
         raise Exception(f"API request failed with status {response.status_code}")
 
 
+
 if __name__ == "__main__":
     video_path = "./tempVideo/motion_clip_1739670526.mp4"
     caption = generate_video_caption(video_path)

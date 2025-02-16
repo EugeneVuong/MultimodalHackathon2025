@@ -1,17 +1,23 @@
-"use client"
+"use client";
 
 // Add imports for useEffect and useRef
-import { useEffect, useRef, RefObject } from "react"
-import { useParams } from 'next/navigation'
-import { MeetingProvider, useMeeting, useParticipant, Constants } from "@videosdk.live/react-sdk"
+import { useEffect, useRef, RefObject } from "react";
+import { useParams } from "next/navigation";
+import {
+  MeetingProvider,
+  useMeeting,
+  useParticipant,
+  Constants,
+} from "@videosdk.live/react-sdk";
 
 // Add the auth token
-const authToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGlrZXkiOiIzNjE1MTIzNi0zZDRjLTQwZGQtYjYzYy04MjJmN2JlNjE4MTQiLCJwZXJtaXNzaW9ucyI6WyJhbGxvd19qb2luIl0sImlhdCI6MTczOTY0OTUyOCwiZXhwIjoxODk3NDM3NTI4fQ.Tj27YZqz-bJHjlgWe0OpJD90Cw8CMmuKs1ZZHlXAaQM"
+const authToken =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGlrZXkiOiIzNjE1MTIzNi0zZDRjLTQwZGQtYjYzYy04MjJmN2JlNjE4MTQiLCJwZXJtaXNzaW9ucyI6WyJhbGxvd19qb2luIl0sImlhdCI6MTczOTY4Mzg2NywiZXhwIjoxODk3NDcxODY3fQ.iuMlIS-8c7eoh_0ZrtT50d-gSPg3AaZKSjOUa1I5wFY";
 
 // Create the main CameraView component
 export default function CameraView() {
-  const params = useParams()
-  const sessionID = params.sessionID as string
+  const params = useParams();
+  const sessionID = params.sessionID as string;
 
   return (
     <div className="relative w-full h-screen bg-neutral-900">
@@ -28,7 +34,7 @@ export default function CameraView() {
         <StreamContainer sessionID={sessionID} />
       </MeetingProvider>
     </div>
-  )
+  );
 }
 
 // Add the StreamContainer component
@@ -36,13 +42,13 @@ function StreamContainer({ sessionID }: { sessionID: string }) {
   const { join, meeting } = useMeeting({
     onMeetingJoined: () => console.log("Joined meeting:", sessionID),
     onError: (error) => console.error("Meeting error:", error),
-  })
+  });
 
   useEffect(() => {
     if (!meeting) {
-      join()
+      join();
     }
-  }, [join, meeting])
+  }, [join, meeting]);
 
   return (
     <>
@@ -57,20 +63,20 @@ function StreamContainer({ sessionID }: { sessionID: string }) {
         </div>
       )}
     </>
-  )
+  );
 }
 
 // Add the StreamView component
 function StreamView() {
-  const { participants } = useMeeting()
-  const participantArray = Array.from(participants.values())
+  const { participants } = useMeeting();
+  const participantArray = Array.from(participants.values());
 
   if (participantArray.length === 0) {
     return (
       <div className="absolute inset-0 flex items-center justify-center text-white">
         <p>Waiting for camera stream...</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -81,13 +87,13 @@ function StreamView() {
           <Participant key={p.id} participantId={p.id} />
         ))}
     </div>
-  )
+  );
 }
 
 // Add the Participant component
 function Participant({ participantId }: { participantId: string }) {
-  const { webcamStream, webcamOn } = useParticipant(participantId)
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const { webcamStream, webcamOn } = useParticipant(participantId);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const setupStream = (
     stream: any,
@@ -95,12 +101,17 @@ function Participant({ participantId }: { participantId: string }) {
     condition: boolean
   ) => {
     if (ref.current && stream) {
-      ref.current.srcObject = condition ? new MediaStream([stream.track]) : null
-      condition && ref.current.play().catch(console.error)
+      ref.current.srcObject = condition
+        ? new MediaStream([stream.track])
+        : null;
+      condition && ref.current.play().catch(console.error);
     }
-  }
+  };
 
-  useEffect(() => setupStream(webcamStream, videoRef, webcamOn), [webcamStream, webcamOn])
+  useEffect(
+    () => setupStream(webcamStream, videoRef, webcamOn),
+    [webcamStream, webcamOn]
+  );
 
   return (
     <div className="relative w-full h-full">
@@ -118,5 +129,5 @@ function Participant({ participantId }: { participantId: string }) {
         </div>
       )}
     </div>
-  )
+  );
 }
