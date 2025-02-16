@@ -16,11 +16,6 @@
       "static/chunks/main-app.js",
       "static/chunks/app/camera/page.js"
     ],
-    "/dashboard/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/page.js"
-    ],
     "/results/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
