@@ -4,3 +4,4 @@ requests==2.31.0
 pillow==10.4.0
 firebase==4.0.1
 firebase-admin==6.6.0
+google-genai==1.2.0
