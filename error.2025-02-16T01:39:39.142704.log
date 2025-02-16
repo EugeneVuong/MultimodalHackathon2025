@@ -1,0 +1,40 @@
+2025-02-16 01:40:54,528 : ERROR : aperturedb.Connector : 8350435392 : 358 : Error connecting to server: [ai-agent-event-bl3gp0gk.farm0000.cloud.aperturedata.io:55556 as admin using TCP with SSL=True] 
+Will retry in 1 seconds. e=TimeoutError(60, 'Operation timed out')
+Traceback (most recent call last):
+  File "/Users/nicholasferreira/Documents/Projects/MultimodalHackathon2025/.venv/lib/python3.13/site-packages/aperturedb/Connector.py", line 356, in connect
+    self._connect()
+    ~~~~~~~~~~~~~^^
+  File "/Users/nicholasferreira/Documents/Projects/MultimodalHackathon2025/.venv/lib/python3.13/site-packages/aperturedb/Connector.py", line 307, in _connect
+    self.conn.connect((self.host, self.port))
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+TimeoutError: [Errno 60] Operation timed out
+Stack (most recent call last):
+  File "/Users/nicholasferreira/Documents/Projects/MultimodalHackathon2025/backend/testqueryvideo.py", line 6, in <module>
+    from apertureconnection import add_video_to_aperture, search_videos_by_caption, search_video_by_id  # Assuming your function is in video_ingestion.py
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 1022, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/Users/nicholasferreira/Documents/Projects/MultimodalHackathon2025/backend/apertureconnection.py", line 18, in <module>
+    response, _ = db.query(query)
+  File "/Users/nicholasferreira/Documents/Projects/MultimodalHackathon2025/.venv/lib/python3.13/site-packages/aperturedb/Connector.py", line 474, in query
+    self.authenticate(
+  File "/Users/nicholasferreira/Documents/Projects/MultimodalHackathon2025/.venv/lib/python3.13/site-packages/aperturedb/Connector.py", line 178, in authenticate
+    self._authenticate(user, password, token)
+  File "/Users/nicholasferreira/Documents/Projects/MultimodalHackathon2025/.venv/lib/python3.13/site-packages/aperturedb/Connector.py", line 233, in _authenticate
+    response, _ = self._query(query)
+  File "/Users/nicholasferreira/Documents/Projects/MultimodalHackathon2025/.venv/lib/python3.13/site-packages/aperturedb/Connector.py", line 435, in _query
+    self.connect(
+  File "/Users/nicholasferreira/Documents/Projects/MultimodalHackathon2025/.venv/lib/python3.13/site-packages/aperturedb/Connector.py", line 358, in connect
+    logger.error(
+2025-02-16 01:40:55,533 : ERROR : aperturedb.Connector : 8350435392 : 416 : [Errno 9] Bad file descriptor
+Traceback (most recent call last):
+  File "/Users/nicholasferreira/Documents/Projects/MultimodalHackathon2025/.venv/lib/python3.13/site-packages/aperturedb/Connector.py", line 389, in _query
+    if self._send_msg(data):
+       ~~~~~~~~~~~~~~^^^^^^
+  File "/Users/nicholasferreira/Documents/Projects/MultimodalHackathon2025/.venv/lib/python3.13/site-packages/aperturedb/Connector.py", line 195, in _send_msg
+    x = self.conn.send(sent_len + data)
+OSError: [Errno 9] Bad file descriptor
+2025-02-16 01:40:55,535 : WARNING : aperturedb.Connector : 8350435392 : 417 : OS error on process 54559
+2025-02-16 01:40:55,535 : WARNING : aperturedb.Connector : 8350435392 : 428 : Connection broken. Reconnecting attempt [2/3] .. PID = 54559
