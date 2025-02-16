@@ -213,6 +213,7 @@ export default function SecurityDashboard() {
   const [isConnected, setIsConnected] = useState(false);
   const [availableStreams, setAvailableStreams] = useState<Stream[]>([]);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isLoadingStreams, setIsLoadingStreams] = useState(true);
 
   const [alerts, setAlerts] = useState([
     { id: 1, message: "Movement detected in Zone A", time: "2 mins ago" },
@@ -287,6 +288,18 @@ export default function SecurityDashboard() {
       )
     );
   };
+
+  const removeAlert = (alertId: number) => {
+    setAlerts((prev) => prev.filter((alert) => alert.id !== alertId));
+  };
+
+  useEffect(() => {
+    // Simulate loading time - remove this in production and replace with actual data fetching
+    const timer = setTimeout(() => {
+      setIsLoadingStreams(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className="flex h-screen bg-white dark:bg-neutral-950">
@@ -432,36 +445,57 @@ export default function SecurityDashboard() {
               <div className="p-4">
                 <h3 className="font-semibold mb-4">Available Streams</h3>
                 <div className="grid grid-cols-2 gap-2">
-                  {availableStreams.map((stream) => (
-                    <button
-                      key={stream.id}
-                      onClick={() => {
-                        if (selectedStreams.some((s) => s.id === stream.id)) {
-                          alert("This stream is already connected");
-                          return;
-                        }
-                        setSelectedStreams((prev) => [...prev, stream]);
-                        setStreamInput(stream.id);
-                      }}
-                      className={`relative aspect-video bg-muted rounded-lg overflow-hidden hover:ring-2 hover:ring-ring ${
-                        selectedStreams.some((s) => s.id === stream.id)
-                          ? "ring-2 ring-neutral-900 dark:ring-neutral-50"
-                          : ""
-                      }`}
-                    >
-                      <img
-                        src={
-                          stream.thumbnail ||
-                          `/placeholder.svg?height=120&width=160&text=${stream.name}`
-                        }
-                        alt={`${stream.name} Thumbnail`}
-                        className="w-full h-full object-cover"
-                      />
-                      <span className="absolute bottom-2 left-2 text-xs bg-white/80 px-2 py-1 rounded dark:bg-neutral-950/80">
-                        {stream.name}
-                      </span>
-                    </button>
-                  ))}
+                  {isLoadingStreams ? (
+                    // Loading placeholders
+                    <>
+                      {[1, 2, 3, 4].map((n) => (
+                        <div
+                          key={`loading-${n}`}
+                          className="relative aspect-video bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden"
+                        >
+                          <div className="absolute inset-0 animate-pulse">
+                            <div className="h-full w-full bg-neutral-200 dark:bg-neutral-700" />
+                            <div className="absolute bottom-2 left-2 h-4 w-24 bg-neutral-300 dark:bg-neutral-600 rounded" />
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  ) : availableStreams.length > 0 ? (
+                    availableStreams.map((stream) => (
+                      <button
+                        key={stream.id}
+                        onClick={() => {
+                          if (selectedStreams.some((s) => s.id === stream.id)) {
+                            alert("This stream is already connected");
+                            return;
+                          }
+                          setSelectedStreams((prev) => [...prev, stream]);
+                          setStreamInput(stream.id);
+                        }}
+                        className={`relative aspect-video bg-muted rounded-lg overflow-hidden hover:ring-2 hover:ring-ring ${
+                          selectedStreams.some((s) => s.id === stream.id)
+                            ? "ring-2 ring-neutral-900 dark:ring-neutral-50"
+                            : ""
+                        }`}
+                      >
+                        <img
+                          src={
+                            stream.thumbnail ||
+                            `/placeholder.svg?height=120&width=160&text=${stream.name}`
+                          }
+                          alt={`${stream.name} Thumbnail`}
+                          className="w-full h-full object-cover"
+                        />
+                        <span className="absolute bottom-2 left-2 text-xs bg-white/80 px-2 py-1 rounded dark:bg-neutral-950/80">
+                          {stream.name}
+                        </span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="col-span-2 text-center py-8 text-neutral-500 dark:text-neutral-400">
+                      No available streams found
+                    </div>
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -480,9 +514,21 @@ export default function SecurityDashboard() {
                       key={alert.id}
                       className="mb-4 pb-4 border-b last:border-b-0"
                     >
-                      <div className="font-medium">{alert.message}</div>
-                      <div className="text-sm text-neutral-500 dark:text-neutral-400">
-                        {alert.time}
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-medium">{alert.message}</div>
+                          <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                            {alert.time}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeAlert(alert.id)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
                       </div>
                     </div>
                   ))}
