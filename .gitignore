@@ -12,6 +12,12 @@
 # next.js
 /.next/
 /out/
+/frontend/node_modules
+/frontend/.next
+/frontend/dist
+/frontend/build
+/frontend/.env*.local
+/frontend/.vercel
 
 # production
 /build
