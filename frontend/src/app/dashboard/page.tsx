@@ -467,34 +467,34 @@ export default function SecurityDashboard() {
   return (
     <>
       {styles}
-      <div className="flex h-screen bg-white dark:bg-neutral-950">
-        {/* Main Content */}
-        <div className="flex flex-col flex-1 p-6 gap-6">
-          {/* Stream Connection */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-4">
-                <Input
+    <div className="flex h-screen bg-white dark:bg-neutral-950">
+      {/* Main Content */}
+      <div className="flex flex-col flex-1 p-6 gap-6">
+        {/* Stream Connection */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <Input
                   placeholder="Enter stream ID (e.g., tb5x-7zqt-nnbr)"
-                  value={streamInput}
-                  onChange={(e) => setStreamInput(e.target.value)}
-                  className="flex-1"
+                value={streamInput}
+                onChange={(e) => setStreamInput(e.target.value)}
+                className="flex-1"
                   pattern="[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}"
-                />
-                <Button onClick={connectToStream}>Connect</Button>
+              />
+              <Button onClick={connectToStream}>Connect</Button>
                 <Badge
                   variant={selectedStreams.length > 0 ? "default" : "secondary"}
                   className="gap-1"
                 >
-                  {selectedStreams.length > 0 ? (
+                {selectedStreams.length > 0 ? (
                     <>{selectedStreams.length} streams connected</>
-                  ) : (
+                ) : (
                     <>No streams connected</>
-                  )}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
+                )}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
 
           {/* Validation Alert */}
           {validationAlert && (
@@ -519,69 +519,69 @@ export default function SecurityDashboard() {
             </Alert>
           )}
 
-          {/* Primary Camera View */}
-          <Card className="flex-1">
-            <CardHeader className="bg-red-500 text-neutral-50 dark:bg-red-900 dark:text-neutral-50">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Camera className="h-5 w-5" />
-                  Active Streams ({selectedStreams.length})
-                </CardTitle>
-                <Badge variant="secondary">Live</Badge>
-              </div>
-            </CardHeader>
+        {/* Primary Camera View */}
+        <Card className="flex-1">
+          <CardHeader className="bg-red-500 text-neutral-50 dark:bg-red-900 dark:text-neutral-50">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Camera className="h-5 w-5" />
+                Active Streams ({selectedStreams.length})
+              </CardTitle>
+              <Badge variant="secondary">Live</Badge>
+            </div>
+          </CardHeader>
             <CardContent className="p-4 h-[calc(100%-4rem)] overflow-hidden">
-              {selectedStreams.length > 0 ? (
+            {selectedStreams.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full overflow-y-auto">
                   {selectedStreams.map((stream) => (
                     <Card key={stream.id} className="relative h-[300px] min-h-[300px]">
-                      <MeetingProvider
-                        config={{
-                          meetingId: stream.id,
-                          micEnabled: false,
-                          webcamEnabled: false,
-                          name: `${stream.name} Viewer`,
+                    <MeetingProvider
+                      config={{
+                        meetingId: stream.id,
+                        micEnabled: false,
+                        webcamEnabled: false,
+                        name: `${stream.name} Viewer`,
                           mode: Constants.modes.RECV_ONLY as "RECV_ONLY",
-                          debugMode: true,
-                        }}
-                        token={authToken}
-                      >
+                        debugMode: true,
+                      }}
+                      token={authToken}
+                    >
                         <div className="relative h-full">
-                          <LSContainer 
-                            streamId={stream.id} 
-                            onLeave={() => disconnectStream(stream.id)}
-                            onSnapshot={updateThumbnail}
+                      <LSContainer 
+                        streamId={stream.id} 
+                        onLeave={() => disconnectStream(stream.id)}
+                        onSnapshot={updateThumbnail}
                             streamName={stream.name}
-                          />
+                      />
                         </div>
-                      </MeetingProvider>
-                      <Button
-                        variant="destructive"
-                        size="sm"
+                    </MeetingProvider>
+                    <Button
+                      variant="destructive"
+                      size="sm"
                         className="absolute top-2 right-2 z-20"
-                        onClick={() => disconnectStream(stream.id)}
-                      >
-                        Disconnect
-                      </Button>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
+                      onClick={() => disconnectStream(stream.id)}
+                    >
+                      Disconnect
+                    </Button>
+                  </Card>
+                ))}
+              </div>
+            ) : (
                 <div className="h-full flex items-center justify-center bg-neutral-100 dark:bg-neutral-800 rounded-lg">
                   <div className="text-center text-neutral-500 dark:text-neutral-400">
                     <p className="mb-2">No active streams</p>
                     <p className="text-sm">Connect to a stream to start viewing</p>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* AI Action Input */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-neutral-500 dark:text-neutral-400" />
+        {/* AI Action Input */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-neutral-500 dark:text-neutral-400" />
                 <Input
                   placeholder="What should I look at? (e.g. 'Alert me if someone jumps')"
                   className="pl-10 mb-2"
@@ -609,35 +609,35 @@ export default function SecurityDashboard() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* Sidebar */}
-        <Card className="w-96 border-l rounded-none">
-          <Tabs defaultValue="monitoring" className="h-full flex flex-col">
-            <CardHeader>
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="monitoring">
-                  <Grid className="h-4 w-4 mr-2" />
-                  Monitoring
-                </TabsTrigger>
-                <TabsTrigger value="chat">
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Chat
-                </TabsTrigger>
-                <TabsTrigger value="alerts">
-                  <Bell className="h-4 w-4 mr-2" />
-                  Alerts
-                </TabsTrigger>
-              </TabsList>
-            </CardHeader>
-            <CardContent className="flex-1 p-0">
-              <TabsContent value="monitoring" className="h-full">
-                <div className="p-4">
-                  <h3 className="font-semibold mb-4">Available Streams</h3>
-                  <div className="grid grid-cols-2 gap-2">
+      {/* Sidebar */}
+      <Card className="w-96 border-l rounded-none">
+        <Tabs defaultValue="monitoring" className="h-full flex flex-col">
+          <CardHeader>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="monitoring">
+                <Grid className="h-4 w-4 mr-2" />
+                Monitoring
+              </TabsTrigger>
+              <TabsTrigger value="chat">
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Chat
+              </TabsTrigger>
+              <TabsTrigger value="alerts">
+                <Bell className="h-4 w-4 mr-2" />
+                Alerts
+              </TabsTrigger>
+            </TabsList>
+          </CardHeader>
+          <CardContent className="flex-1 p-0">
+            <TabsContent value="monitoring" className="h-full">
+              <div className="p-4">
+                <h3 className="font-semibold mb-4">Available Streams</h3>
+                <div className="grid grid-cols-2 gap-2">
                     {isLoadingStreams ? (
                       // Loading placeholders
                       <>
@@ -656,8 +656,8 @@ export default function SecurityDashboard() {
                     ) : availableStreams.length > 0 ? (
                       availableStreams.map((stream) => (
                         <div key={stream.id} className="relative">
-                      <button
-                        onClick={() => {
+                    <button
+                      onClick={() => {
                           if (selectedStreams.some((s) => s.id === stream.id)) {
                             setValidationAlert({
                               title: "Already Connected",
@@ -678,7 +678,7 @@ export default function SecurityDashboard() {
                         {stream.thumbnail ? (
                           <Image
                             src={stream.thumbnail}
-                            alt={`${stream.name} Thumbnail`}
+                        alt={`${stream.name} Thumbnail`}
                             fill
                             className="object-cover"
                             unoptimized
@@ -781,27 +781,27 @@ export default function SecurityDashboard() {
                         No available streams found
                       </div>
                     )}
-                  </div>
                 </div>
-              </TabsContent>
-              <TabsContent value="chat" className="h-full border-0 m-0 p-0">
-                <ChatInterface />
-              </TabsContent>
-              <TabsContent value="alerts" className="h-full">
-                <div className="p-4">
-                  <h3 className="font-semibold flex items-center gap-2 mb-4">
-                    <AlertCircle className="h-4 w-4 text-red-500 dark:text-red-900" />
-                    Recent Alerts
-                  </h3>
-                  <ScrollArea className="h-[calc(100vh-12rem)]">
-                    {alerts.map((alert) => (
+              </div>
+            </TabsContent>
+            <TabsContent value="chat" className="h-full border-0 m-0 p-0">
+              <ChatInterface />
+            </TabsContent>
+            <TabsContent value="alerts" className="h-full">
+              <div className="p-4">
+                <h3 className="font-semibold flex items-center gap-2 mb-4">
+                  <AlertCircle className="h-4 w-4 text-red-500 dark:text-red-900" />
+                  Recent Alerts
+                </h3>
+                <ScrollArea className="h-[calc(100vh-12rem)]">
+                  {alerts.map((alert) => (
                       <div
                         key={alert.id}
                         className="mb-4 pb-4 border-b last:border-b-0"
                       >
                         <div className="flex justify-between items-start">
                           <div>
-                        <div className="font-medium">{alert.message}</div>
+                      <div className="font-medium">{alert.message}</div>
                             <div className="text-sm text-neutral-500 dark:text-neutral-400">
                               {alert.time}
                             </div>
@@ -815,15 +815,15 @@ export default function SecurityDashboard() {
                             <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
                         </div>
-                      </div>
-                    ))}
-                  </ScrollArea>
-                </div>
-              </TabsContent>
-            </CardContent>
-          </Tabs>
-        </Card>
-      </div>
+                    </div>
+                  ))}
+                </ScrollArea>
+              </div>
+            </TabsContent>
+          </CardContent>
+        </Tabs>
+      </Card>
+    </div>
     </>
   );
 }
