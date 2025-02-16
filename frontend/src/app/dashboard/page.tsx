@@ -367,27 +367,29 @@ export default function SecurityDashboard() {
                 onChange={(e) => setActionInput(e.target.value)}
                 onKeyDown={(e) => { if(e.key === 'Enter' && actionInput.trim() !== '') { e.preventDefault(); addAction(); } }}
               />
-              
             </div>
-            <div className="grid grid-cols-6 gap-2">
-              <Button onClick={addAction} className="mb-2">Add Action</Button>
+            <div className="flex flex-cols-6 gap-2 justify-items-center">
+              <Button size="sm" onClick={addAction} className="mb-2">
+                Add Action
+              </Button>
               {actions.length > 0 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="secondary">Actions ({actions.length})</Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56">
-                  {actions.map((action) => (
-                    <DropdownMenuItem key={action.id} onSelect={() => removeAction(action.id)}>
-                      <span>{action.description}</span>
-                      <Trash2 className="ml-auto h-4 w-4 text-red-500" />
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="secondary">
+                      Actions ({actions.length})
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56">
+                    {actions.map((action) => (
+                      <DropdownMenuItem key={action.id} onSelect={() => removeAction(action.id)}>
+                        <span>{action.description}</span>
+                        <Trash2 className="ml-auto h-4 w-4 text-red-500" />
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
-            
           </CardContent>
         </Card>
       </div>
