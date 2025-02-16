@@ -5,14 +5,13 @@ from apertureconnection import add_video_to_aperture  # Import your helper funct
 def main():
     # Define the video metadata.
     video_properties = {
-        "name": "test2.mov",
-        "id": 2,  # Ensure this is a unique identifier for your video.
+        "name": "delivery.mov",
         "category": "test",
-        "caption": "This is a test video upload for ApertureDB."
+        "id": "",
     }
     
     # Specify the path to your test video file.
-    file_path = "/Users/nicholasferreira/Documents/Projects/MultimodalHackathon2025/backend/test2.mov"
+    file_path = "/Users/nicholasferreira/Documents/Projects/MultimodalHackathon2025/backend/testdelivery.mov"
     
     # Use the global function to upload the video.
     response, blobs = add_video_to_aperture(file_path, video_properties)

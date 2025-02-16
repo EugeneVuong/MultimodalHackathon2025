@@ -1,0 +1,13 @@
+2025-02-16 02:20:37,611 : ERROR : aperturedb.Connector : 8350435392 : 416 : [Errno 32] Broken pipe
+Traceback (most recent call last):
+  File "/Users/nicholasferreira/Documents/Projects/MultimodalHackathon2025/.venv/lib/python3.13/site-packages/aperturedb/Connector.py", line 389, in _query
+    if self._send_msg(data):
+       ~~~~~~~~~~~~~~^^^^^^
+  File "/Users/nicholasferreira/Documents/Projects/MultimodalHackathon2025/.venv/lib/python3.13/site-packages/aperturedb/Connector.py", line 195, in _send_msg
+    x = self.conn.send(sent_len + data)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/ssl.py", line 1232, in send
+    return self._sslobj.write(data)
+           ~~~~~~~~~~~~~~~~~~^^^^^^
+BrokenPipeError: [Errno 32] Broken pipe
+2025-02-16 02:20:37,618 : WARNING : aperturedb.Connector : 8350435392 : 417 : OS error on process 56065
+2025-02-16 02:20:37,619 : WARNING : aperturedb.Connector : 8350435392 : 428 : Connection broken. Reconnecting attempt [1/3] .. PID = 56065

@@ -1,59 +1,54 @@
+import numpy as np
 from aperturedb import Connector as Connector
 from aperturedb.CommonLibrary import create_connector
 from GoogleGemini import generate_video_caption  # Function to generate caption from video
 from GoogleGemini import generate_text_embedding   # Function to generate text embeddings
+import time
 
-# Create the global ApertureDB client using create_connector() if needed.
-client = create_connector()
 
-query = [{
-    "GetStatus": {
-    }
-}]
+# Global ApertureDB connection (adjust parameters as needed)
+db = Connector.Connector(host="eugenevuong-5t9xqiiq.farm0000.cloud.aperturedata.io",
+                         user="admin",
+                         password="!hackhayward2025!")
 
-# Execute the query to get back a JSON response for GetStatus 
-response, blobs = client.query(query)
+# (Assume your global client used for other queries is set up elsewhere if needed.)
 
-client.print_last_response()
 def add_video_to_aperture(file_path: str, video_properties: dict):
     """
-    Upload a video file to ApertureDB using a JSON query.
-    This function will generate a caption using the video file if one is not provided,
-    compute an embedding for the caption, and then include them in the video properties.
-
-    Parameters:
-        file_path (str): Local path to the video file.
-        video_properties (dict): A dictionary containing video metadata. For example:
-            {
-                "name": "testvid.mov",
-                "id": 1,
-                "category": "test"
-            }
-    
-    Returns:
-        response, blobs: The response from ApertureDB and any binary data processed.
+    Upload a video file to ApertureDB.
+    If a caption is not provided, generate one using the video file.
+    Then compute a text embedding for the caption and add both to the video properties.
+    Finally, upload the video.
     """
-    # Generate a caption if one isn't provided in video_properties.
+
+    if "id" not in video_properties or not video_properties["id"]:
+        video_properties["id"] = str(generate_numeric_id())
+
+    # Generate a caption if needed.
     if "caption" not in video_properties or not video_properties["caption"]:
         print("Generating caption from video...")
         try:
-            # This call will generate a caption from the video file.
             generated_caption = generate_video_caption(file_path)
             video_properties["caption"] = generated_caption
             print("Caption generated:", generated_caption)
         except Exception as e:
             print("Error generating video caption:", e)
             video_properties["caption"] = ""
-
-    # Compute the embedding for the caption and add it to the properties.
-    if "caption" in video_properties and video_properties["caption"]:
+    
+    # Compute the embedding for the caption.
+    if video_properties.get("caption"):
         try:
             embedding = generate_text_embedding(video_properties["caption"])
+            # Convert the embedding to a numpy array of type float32 and then to bytes.
+            embedding_bytes = np.array(embedding, dtype='float32').tobytes()
+            # Optionally store the raw embedding for reference.
             video_properties["caption_embedding"] = embedding
         except Exception as e:
             print("Error generating caption embedding:", e)
-            video_properties["caption_embedding"] = []
-
+            embedding_bytes = b""
+    else:
+        embedding_bytes = b""
+    
     # Build the JSON query to add the video.
     query = [{
         "AddVideo": {
@@ -63,61 +58,74 @@ def add_video_to_aperture(file_path: str, video_properties: dict):
             }
         }
     }]
-
+    
     # Read the video file as a binary blob.
     with open(file_path, 'rb') as fd:
         video_blob = fd.read()
-
     array = [video_blob]
-
-    # Execute the query using the global db instance.
+    
+    # Execute the query to add the video.
     response, blobs = db.query(query, array)
     db.print_last_response()
+    
+    # Now, add the descriptor for the video's caption to the descriptor set.
+    add_video_descriptor(video_properties.get("id"), video_properties["caption"], embedding_bytes)
+    
     return response, blobs
-  
-def search_videos_by_caption(caption_search: str):
-    # Retrieve a broader set of videos without filtering on caption.
+
+def add_video_descriptor(video_id: int, caption: str, embedding_bytes: bytes, descriptor_set: str = "video_search"):
+    """
+    Adds a descriptor (embedding) for the video caption to the descriptor set,
+    so that you can later perform similarity searches using natural language.
+    """
+    # Build a query to add the descriptor.
     query = [{
-        "FindVideo": {
+        "AddDescriptor": {
+            "set": descriptor_set,
+            "label": "video_caption",
+            "properties": {
+                "id": video_id,
+                "caption": caption
+            },
+            "if_not_found": {
+                "id": ["==", video_id]
+            }
+        }
+    }]
+    
+    responses, blobs = db.query(query, [embedding_bytes])
+    print("Descriptor add response:", db.get_last_response_str())
+    return responses, blobs
+
+
+def search_video_by_text(query_text: str, k_neighbors: int = 5, descriptor_set: str = "video_search"):
+    """
+    Searches for videos by performing a similarity search on the caption embeddings.
+    """
+    # Compute the embedding for the query text.
+    query_embedding = generate_text_embedding(query_text)
+    query_embedding_bytes = np.array(query_embedding, dtype='float32').tobytes()
+    
+    # Build a query to find similar descriptors.
+    q = [{
+        "FindDescriptor": {
+            "set": descriptor_set,
+            "k_neighbors": k_neighbors,
+            "distances": True,
+            "labels": True,
+            "blobs": True,
             "results": {
-                "limit": 100,
                 "all_properties": True
             }
         }
     }]
     
-    response, _ = db.query(query, [])
-    videos = response[0].get("entities", [])
-    
-    # Now filter locally for videos whose caption contains the search term (case-insensitive)
-    filtered = [
-        video for video in videos 
-        if caption_search.lower() in video.get("caption", "").lower()
-    ]
-    return filtered
+    responses, blobs = db.query(q, [query_embedding_bytes])
+    print("Descriptor search response:", db.get_last_response_str())
+    return responses, blobs
 
+# Example usage:
+# search_video_by_text("person dropping off a package")
 
-def search_video_by_id(video_id: int):
-    """
-    Searches for a video in ApertureDB based on its id.
-    
-    Parameters:
-        video_id (int): The id of the video to search for.
-    
-    Returns:
-        dict: The query response from ApertureDB containing the matching video(s).
-    """
-    query = [{
-        "FindVideo": {
-            "constraints": {
-                "id": ["==", video_id]
-            },
-            "results": {
-                "all_properties": True,
-                "limit": 10
-            }
-        }
-    }]
-    
-    response, _ = db.query(query, [])
-    return response
+def generate_numeric_id():
+    return int(time.time() * 1000) # milliseconds since epoch
