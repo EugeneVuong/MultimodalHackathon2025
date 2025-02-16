@@ -38,6 +38,7 @@ import {
   useParticipant,
   Constants,
 } from "@videosdk.live/react-sdk";
+import Image from "next/image";
 
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../../lib/firebaseConfig";
@@ -223,6 +224,7 @@ export default function SecurityDashboard() {
   const [availableStreams, setAvailableStreams] = useState<Stream[]>([]);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isLoadingStreams, setIsLoadingStreams] = useState(true);
+  const [editingName, setEditingName] = useState<{id: string, name: string} | null>(null);
 
   const [alerts, setAlerts] = useState([
     { id: 1, message: "Movement detected in Zone A", time: "2 mins ago" },
@@ -315,6 +317,24 @@ export default function SecurityDashboard() {
 
   const removeAlert = (alertId: number) => {
     setAlerts((prev) => prev.filter((alert) => alert.id !== alertId));
+  };
+
+  const updateStreamName = (streamId: string, newName: string) => {
+    if (!newName.trim()) return;
+    
+    setAvailableStreams(prev => 
+      prev.map(stream => 
+        stream.id === streamId ? { ...stream, name: newName.trim() } : stream
+      )
+    );
+    
+    setSelectedStreams(prev =>
+      prev.map(stream =>
+        stream.id === streamId ? { ...stream, name: newName.trim() } : stream
+      )
+    );
+    
+    setEditingName(null);
   };
 
   useEffect(() => {
@@ -503,13 +523,15 @@ export default function SecurityDashboard() {
                               : ""
                           }`}
                         >
-                          <img
+                          <Image
                             src={
                               stream.thumbnail ||
                               `/placeholder.svg?height=120&width=160&text=${stream.name}`
                             }
                             alt={`${stream.name} Thumbnail`}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
+                            unoptimized={!!stream.thumbnail}
                           />
                           <span className="absolute bottom-2 left-2 text-xs bg-white/80 px-2 py-1 rounded dark:bg-neutral-950/80">
                             {stream.name}
@@ -527,7 +549,46 @@ export default function SecurityDashboard() {
                           </PopoverTrigger>
                           <PopoverContent className="w-80 bg-neutral-900/95 text-white border-neutral-800 backdrop-blur-sm" side="right">
                             <div className="space-y-2">
-                              <h4 className="font-medium text-white">{stream.name}</h4>
+                              <div className="flex items-center justify-between gap-2">
+                                {editingName?.id === stream.id ? (
+                                  <div className="flex-1 flex gap-2">
+                                    <Input
+                                      value={editingName.name}
+                                      onChange={(e) => setEditingName({ id: stream.id, name: e.target.value })}
+                                      className="flex-1 h-8 bg-neutral-800 border-neutral-700 text-white"
+                                      placeholder="Enter stream name"
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          updateStreamName(stream.id, editingName.name);
+                                        } else if (e.key === 'Escape') {
+                                          setEditingName(null);
+                                        }
+                                      }}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      onClick={() => updateStreamName(stream.id, editingName.name)}
+                                      className="h-8 px-2 bg-neutral-800 hover:bg-neutral-700"
+                                    >
+                                      Save
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <h4 className="font-medium text-white">{stream.name}</h4>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => setEditingName({ id: stream.id, name: stream.name })}
+                                      className="h-8 px-2 text-neutral-400 hover:text-white"
+                                    >
+                                      Edit
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
                               <div className="text-sm space-y-1">
                                 <div className="flex justify-between">
                                   <span className="text-neutral-400">Stream ID:</span>
