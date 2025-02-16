@@ -33,6 +33,9 @@ import {
   Constants,
 } from "@videosdk.live/react-sdk";
 
+import { doc, setDoc, deleteDoc } from "firebase/firestore";
+import { db } from "../../lib/firebaseConfig";
+
 interface Stream {
   id: string;
   name: string;
@@ -222,19 +225,34 @@ export default function SecurityDashboard() {
 
   // NEW STATE FOR ACTIONS
   const [actionInput, setActionInput] = useState("");
-  const [actions, setActions] = useState<{ id: number; description: string }[]>(
+  const [actions, setActions] = useState<{ id: string; description: string }[]>(
     []
   );
 
-  const addAction = () => {
+  // Add an action and store it in Firestore ("aiAlert" collection)
+  const addAction = async () => {
     if (!actionInput.trim()) return;
-    const newAction = { id: Date.now(), description: actionInput.trim() };
-    setActions((prev) => [...prev, newAction]);
-    setActionInput("");
+    const newAction = {
+      id: Date.now().toString(),
+      description: actionInput.trim(),
+    };
+    try {
+      await setDoc(doc(db, "aiAlert", newAction.id), newAction);
+      setActions((prev) => [...prev, newAction]);
+      setActionInput("");
+    } catch (error) {
+      console.error("Error adding action to Firestore:", error);
+    }
   };
 
-  const removeAction = (id: number) => {
-    setActions((prev) => prev.filter((action) => action.id !== id));
+  // Remove an action and delete the document from Firestore
+  const removeAction = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "aiAlert", id));
+      setActions((prev) => prev.filter((action) => action.id !== id));
+    } catch (error) {
+      console.error("Error removing action from Firestore:", error);
+    }
   };
 
   const connectToStream = () => {
