@@ -11,6 +11,7 @@ import {
   Wifi,
   WifiOff,
   Plus,
+  Info,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -18,6 +19,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -359,11 +365,11 @@ export default function SecurityDashboard() {
               <Badge variant="secondary">Live</Badge>
             </div>
           </CardHeader>
-          <CardContent className="p-0 relative h-[calc(100%-4rem)]">
+          <CardContent className="p-4 h-[calc(100%-4rem)] overflow-hidden">
             {selectedStreams.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 h-full overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full overflow-y-auto">
                 {selectedStreams.map((stream) => (
-                  <Card key={stream.id} className="relative h-64">
+                  <Card key={stream.id} className="relative h-[300px] min-h-[300px]">
                     <MeetingProvider
                       config={{
                         meetingId: stream.id,
@@ -384,7 +390,7 @@ export default function SecurityDashboard() {
                     <Button
                       variant="destructive"
                       size="sm"
-                      className="absolute top-2 right-2"
+                      className="absolute top-2 right-2 z-10"
                       onClick={() => disconnectStream(stream.id)}
                     >
                       Disconnect
@@ -393,9 +399,10 @@ export default function SecurityDashboard() {
                 ))}
               </div>
             ) : (
-              <div className="absolute inset-0 bg-neutral-100 flex items-center justify-center dark:bg-neutral-800">
-                <div className="text-neutral-500 dark:text-neutral-400">
-                  No active streams
+              <div className="h-full flex items-center justify-center bg-neutral-100 dark:bg-neutral-800 rounded-lg">
+                <div className="text-center text-neutral-500 dark:text-neutral-400">
+                  <p className="mb-2">No active streams</p>
+                  <p className="text-sm">Connect to a stream to start viewing</p>
                 </div>
               </div>
             )}
@@ -480,34 +487,73 @@ export default function SecurityDashboard() {
                     </>
                   ) : availableStreams.length > 0 ? (
                     availableStreams.map((stream) => (
-                      <button
-                        key={stream.id}
-                        onClick={() => {
-                          if (selectedStreams.some((s) => s.id === stream.id)) {
-                            alert("This stream is already connected");
-                            return;
-                          }
-                          setSelectedStreams((prev) => [...prev, stream]);
-                          setStreamInput(stream.id);
-                        }}
-                        className={`relative aspect-video bg-muted rounded-lg overflow-hidden hover:ring-2 hover:ring-ring ${
-                          selectedStreams.some((s) => s.id === stream.id)
-                            ? "ring-2 ring-neutral-900 dark:ring-neutral-50"
-                            : ""
-                        }`}
-                      >
-                        <img
-                          src={
-                            stream.thumbnail ||
-                            `/placeholder.svg?height=120&width=160&text=${stream.name}`
-                          }
-                          alt={`${stream.name} Thumbnail`}
-                          className="w-full h-full object-cover"
-                        />
-                        <span className="absolute bottom-2 left-2 text-xs bg-white/80 px-2 py-1 rounded dark:bg-neutral-950/80">
-                          {stream.name}
-                        </span>
-                      </button>
+                      <div key={stream.id} className="relative">
+                        <button
+                          onClick={() => {
+                            if (selectedStreams.some((s) => s.id === stream.id)) {
+                              alert("This stream is already connected");
+                              return;
+                            }
+                            setSelectedStreams((prev) => [...prev, stream]);
+                            setStreamInput(stream.id);
+                          }}
+                          className={`relative aspect-video w-full bg-muted rounded-lg overflow-hidden hover:ring-2 hover:ring-ring ${
+                            selectedStreams.some((s) => s.id === stream.id)
+                              ? "ring-2 ring-neutral-900 dark:ring-neutral-50"
+                              : ""
+                          }`}
+                        >
+                          <img
+                            src={
+                              stream.thumbnail ||
+                              `/placeholder.svg?height=120&width=160&text=${stream.name}`
+                            }
+                            alt={`${stream.name} Thumbnail`}
+                            className="w-full h-full object-cover"
+                          />
+                          <span className="absolute bottom-2 left-2 text-xs bg-white/80 px-2 py-1 rounded dark:bg-neutral-950/80">
+                            {stream.name}
+                          </span>
+                        </button>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="absolute top-2 right-2 h-8 w-8 p-0 bg-white/80 hover:bg-white/90 dark:bg-neutral-950/80 dark:hover:bg-neutral-950/90"
+                            >
+                              <Info className="h-4 w-4" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80 bg-neutral-900/95 text-white border-neutral-800 backdrop-blur-sm" side="right">
+                            <div className="space-y-2">
+                              <h4 className="font-medium text-white">{stream.name}</h4>
+                              <div className="text-sm space-y-1">
+                                <div className="flex justify-between">
+                                  <span className="text-neutral-400">Stream ID:</span>
+                                  <span className="font-mono text-neutral-200">{stream.id}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-neutral-400">Status:</span>
+                                  <span className="text-emerald-400">Active</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-neutral-400">Connected:</span>
+                                  <span className="text-neutral-200">{selectedStreams.some((s) => s.id === stream.id) ? "Yes" : "No"}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-neutral-400">Resolution:</span>
+                                  <span className="text-neutral-200">1920x1080</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-neutral-400">FPS:</span>
+                                  <span className="text-neutral-200">30</span>
+                                </div>
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
                     ))
                   ) : (
                     <div className="col-span-2 text-center py-8 text-neutral-500 dark:text-neutral-400">
