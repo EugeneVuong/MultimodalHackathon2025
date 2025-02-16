@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import cv2
+import io
 import numpy as np
 import time
 from collections import deque
@@ -9,12 +10,32 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from google import genai
 import requests
+import deeplake
 
 # Global variables to keep track of tasks, the Playwright instance, and the main event loop.
 tasks = {}
 playwright_instance = None
 MAIN_LOOP = None  # This will be set to the asyncio event loop running our main().
 api_semaphore: asyncio.Semaphore = None  # Used to limit concurrent API calls.
+
+
+schema = {
+    "id": deeplake.types.UInt64(),
+    "embedding": deeplake.types.Embedding(768),
+    "caption": deeplake.types.Text(),
+    "base64encoding": deeplake.types.Text(),
+    "streamId": deeplake.types.Text(),
+}
+
+path = "file://database"
+df = 0
+
+try:
+    ds = deeplake.open(path)
+except Exception as e:
+    print(f"Failed to open dataset: {e}")
+    ds = deeplake.create(path, schema=schema)
+
 
 async def run_screencast(url: str, window_name: str, playwright_instance):
     """
@@ -104,7 +125,7 @@ async def run_screencast(url: str, window_name: str, playwright_instance):
                     out.release()
                     print(f"Saved motion clip to {out_filename}")
                     # Process the clip asynchronously (limit concurrent API calls via semaphore).
-                    asyncio.create_task(process_motion_clip(out_filename))
+                    asyncio.create_task(process_motion_clip(out_filename, window_name))
                     recording_mode = False
                     clip_frames = []
 
@@ -167,7 +188,7 @@ def remove_task(doc_id: str):
         print(f"Task for '{doc_id}' cancelled.")
         del tasks[doc_id]
 
-async def process_motion_clip(clip_filename: str):
+async def process_motion_clip(clip_filename: str, session_id: str):
     """
     Processes a saved motion clip by first generating a caption using Google's Gemini API,
     then generating text embeddings using Together AI. The blocking API calls are executed
@@ -178,11 +199,42 @@ async def process_motion_clip(clip_filename: str):
         loop = asyncio.get_running_loop()
         try:
             caption = await loop.run_in_executor(None, generate_video_caption, clip_filename)
-            print("Generated caption:", caption)
+            # print("Generated caption:", caption)
             embedding = await loop.run_in_executor(None, generate_text_embedding, caption)
-            print("Generated embedding:", embedding)
+            # print("Generated embedding:", embedding)
+            await loop.run_in_executor(None, process_video_and_store, ds, clip_filename, caption, embedding, session_id)
+            # print("Generated embedding:", embedding)
+
+
         except Exception as e:
             print(f"Error processing motion clip {clip_filename}: {e}")
+
+def process_video_and_store(ds, video_path, caption, embedding, streamId):
+    """
+    Process a video to store caption and embedding in dataset.
+
+    Args:
+        ds (deeplake._deeplake.DatasetView): The dataset to store the results
+        video_path (str): Path to the video file
+        caption (str): Caption generated for the video
+        embedding (list): Embedding generated for the caption
+    """
+
+    # Read the MP4 file as binary
+    with open(video_path, "rb") as video_file:
+        video_blob = io.BytesIO(video_file.read())
+    base64encoding = base64.b64encode(video_blob.getvalue()).decode("utf-8")
+
+    ds.append({
+        "id": [1],
+        "embedding": [embedding],
+        "caption": [caption],
+        "base64encoding": [base64encoding],
+        "streamId": [streamId]
+    })
+
+    ds.commit("add to database")
+
 
 def generate_video_caption(video_path, api_key="AIzaSyA5NlH0GOSjAJKfmeCohq8tTNkES5_6uMU"):
     """
@@ -259,6 +311,7 @@ def generate_text_embedding(text, api_key="257203c442a94c07ff6f1776f8cfbc6ea6a29
         return response.json()['data'][0]['embedding']
     else:
         raise Exception(f"API request failed with status {response.status_code}")
+
 
 async def main():
     global playwright_instance, MAIN_LOOP, api_semaphore

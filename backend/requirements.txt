@@ -5,3 +5,11 @@ pillow==10.4.0
 firebase==4.0.1
 firebase-admin==6.6.0
 google-genai==1.2.0
+aperturedb==0.3.9
+moviepy==1.0.3
+fastapi==0.115.8
+uvicorn==0.34.0
+
+
+
+
