@@ -12,7 +12,12 @@ import {
   WifiOff,
   Plus,
 } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -34,7 +39,8 @@ interface Stream {
   thumbnail?: string;
 }
 
-const authToken = process.env.VIDEOSDK_TOKEN;
+const authToken =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGlrZXkiOiIzNjE1MTIzNi0zZDRjLTQwZGQtYjYzYy04MjJmN2JlNjE4MTQiLCJwZXJtaXNzaW9ucyI6WyJhbGxvd19qb2luIl0sImlhdCI6MTczOTY4Mzg2NywiZXhwIjoxODk3NDcxODY3fQ.iuMlIS-8c7eoh_0ZrtT50d-gSPg3AaZKSjOUa1I5wFY";
 
 const formatMeetingId = (id: string) => {
   return id.toLowerCase().replace(/[^a-z0-9-]/g, "");
@@ -80,7 +86,8 @@ function Participant({
   streamId: string;
   onSnapshot: (streamId: string, dataUrl: string) => void;
 }) {
-  const { webcamStream, micStream, webcamOn, micOn, displayName } = useParticipant(participantId);
+  const { webcamStream, micStream, webcamOn, micOn, displayName } =
+    useParticipant(participantId);
   const audioRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -152,7 +159,9 @@ function StreamView({
     snapshotInterval.current = setInterval(() => {
       const firstParticipant = participantArray[0];
       if (firstParticipant) {
-        const videoElement = document.querySelector<HTMLVideoElement>(`video[data-participant="${firstParticipant.id}"]`);
+        const videoElement = document.querySelector<HTMLVideoElement>(
+          `video[data-participant="${firstParticipant.id}"]`
+        );
         if (videoElement) {
           const canvas = document.createElement("canvas");
           canvas.width = videoElement.videoWidth;
@@ -185,7 +194,12 @@ function StreamView({
       {participantArray
         .filter((p) => p.mode === Constants.modes.SEND_AND_RECV)
         .map((p) => (
-          <Participant key={p.id} participantId={p.id} streamId={streamId} onSnapshot={onSnapshot} />
+          <Participant
+            key={p.id}
+            participantId={p.id}
+            streamId={streamId}
+            onSnapshot={onSnapshot}
+          />
         ))}
     </div>
   );
@@ -207,17 +221,19 @@ export default function SecurityDashboard() {
 
   // NEW STATE FOR ACTIONS
   const [actionInput, setActionInput] = useState("");
-  const [actions, setActions] = useState<{ id: number; description: string }[]>([]);
+  const [actions, setActions] = useState<{ id: number; description: string }[]>(
+    []
+  );
 
   const addAction = () => {
     if (!actionInput.trim()) return;
     const newAction = { id: Date.now(), description: actionInput.trim() };
-    setActions(prev => [...prev, newAction]);
+    setActions((prev) => [...prev, newAction]);
     setActionInput("");
   };
 
   const removeAction = (id: number) => {
-    setActions(prev => prev.filter(action => action.id !== id));
+    setActions((prev) => prev.filter((action) => action.id !== id));
   };
 
   const connectToStream = () => {
@@ -373,22 +389,20 @@ export default function SecurityDashboard() {
                 Add Action
               </Button>
               {actions.length > 0 && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button size="sm" variant="secondary">
-                      Actions ({actions.length})
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56">
-                    {actions.map((action) => (
-                      <DropdownMenuItem key={action.id} onSelect={() => removeAction(action.id)}>
-                        <span>{action.description}</span>
-                        <Trash2 className="ml-auto h-4 w-4 text-red-500" />
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary">Actions ({actions.length})</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                  {actions.map((action) => (
+                    <DropdownMenuItem key={action.id} onSelect={() => removeAction(action.id)}>
+                      <span>{action.description}</span>
+                      <Trash2 className="ml-auto h-4 w-4 text-red-500" />
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             </div>
           </CardContent>
         </Card>
