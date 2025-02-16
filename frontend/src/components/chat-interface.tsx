@@ -1,64 +1,173 @@
 "use client"
-
-import type React from "react"
-
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Send, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { generateChatResponse, ChatMessage } from "@/lib/together-ai"
+import { 
+  collection, 
+  addDoc, 
+  query, 
+  orderBy, 
+  onSnapshot,
+  serverTimestamp,
+  QuerySnapshot,
+  DocumentData,
+  getDocs,
+  limit
+} from "firebase/firestore"
+import { db } from "../lib/firebaseConfig"
 
 interface Message {
-  id: number
+  id: string
   sender: string
   content: string
   timestamp: string
-  isAI?: boolean
+  isAI: boolean
+  role: "system" | "user" | "assistant"
 }
 
 export function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      sender: "System",
-      content: "Welcome to the security monitoring chat. How can I assist you?",
-      timestamp: "12:00 PM",
-      isAI: true,
-    },
-  ])
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const unsubscribeRef = useRef<() => void>()
 
-  const sendMessage = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!input.trim()) return
+  useEffect(() => {
+    let isMounted = true
 
-    const newMessage: Message = {
-      id: Date.now(),
-      sender: "You",
-      content: input,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    const initializeChat = async () => {
+      const messagesQuery = query(
+        collection(db, "messages"),
+        orderBy("timestamp", "asc")
+      )
+
+      // Check if there are any system messages
+      const systemMessageQuery = query(
+        collection(db, "messages"),
+        orderBy("timestamp", "asc"),
+        limit(1)
+      )
+      
+      const querySnapshot = await getDocs(systemMessageQuery)
+      const hasSystemMessage = !querySnapshot.empty && querySnapshot.docs[0].data().role === "system"
+
+      if (!hasSystemMessage) {
+        // Only add system message if none exists
+        await addDoc(collection(db, "messages"), {
+          sender: "System",
+          content: "I'm your AI security assistant. How can I help you monitor the streams?",
+          timestamp: serverTimestamp(),
+          isAI: true,
+          role: "system" as const
+        })
+      }
+
+      // Set up real-time listener only if component is still mounted
+      if (isMounted) {
+        const unsubscribe = onSnapshot(messagesQuery, (snapshot: QuerySnapshot<DocumentData>) => {
+          if (isMounted) {
+            const msgs: Message[] = snapshot.docs.map((doc) => {
+              const data = doc.data()
+              return {
+                id: doc.id,
+                sender: data.sender,
+                content: data.content,
+                timestamp: data.timestamp?.toDate().toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }) || new Date().toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+                isAI: data.isAI,
+                role: data.role as "system" | "user" | "assistant"
+              }
+            })
+            setMessages(msgs)
+          }
+        })
+
+        unsubscribeRef.current = unsubscribe
+      }
     }
 
-    setMessages((prev) => [...prev, newMessage])
-    setInput("")
+    initializeChat()
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: Date.now() + 1,
-        sender: "AI Assistant",
-        content: "I've noted your message. I'll monitor the cameras for any suspicious activity.",
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        isAI: true,
+    return () => {
+      isMounted = false
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current()
       }
-      setMessages((prev) => [...prev, aiResponse])
-    }, 1000)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+    }
+  }, [messages])
+
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!input.trim() || isLoading) return
+
+    setIsLoading(true)
+    try {
+      // Save user message to Firestore
+      await addDoc(collection(db, "messages"), {
+        sender: "You",
+        content: input,
+        timestamp: serverTimestamp(),
+        isAI: false,
+        role: "user"
+      })
+
+      // Prepare chat messages for AI
+      const chatMessages: ChatMessage[] = messages.map((msg) => ({
+        role: msg.role,
+        content: msg.content
+      }))
+
+      // Add the new user message
+      chatMessages.push({
+        role: "user",
+        content: input
+      })
+
+      const response = await generateChatResponse(chatMessages)
+
+      // Save AI response to Firestore
+      await addDoc(collection(db, "messages"), {
+        sender: "AI Assistant",
+        content: response,
+        timestamp: serverTimestamp(),
+        isAI: true,
+        role: "assistant"
+      })
+
+    } catch (error) {
+      console.error('Error sending message:', error)
+      // Add error message to Firestore
+      await addDoc(collection(db, "messages"), {
+        sender: "System",
+        content: "Sorry, I encountered an error. Please try again.",
+        timestamp: serverTimestamp(),
+        isAI: true,
+        role: "system"
+      })
+    } finally {
+      setIsLoading(false)
+      setInput("")
+    }
   }
 
   return (
     <div className="flex flex-col h-full">
-      <ScrollArea className="flex-1 p-4">
+      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         {messages.map((message) => (
           <div key={message.id} className={`flex gap-3 mb-4 ${message.isAI ? "flex-row" : "flex-row-reverse"}`}>
             <Avatar className="h-8 w-8">
@@ -89,7 +198,7 @@ export function ChatInterface() {
             placeholder="Type a message..."
             className="flex-1"
           />
-          <Button type="submit" size="icon">
+          <Button type="submit" size="icon" disabled={isLoading}>
             <Send className="h-4 w-4" />
           </Button>
         </div>
@@ -97,4 +206,3 @@ export function ChatInterface() {
     </div>
   )
 }
-
