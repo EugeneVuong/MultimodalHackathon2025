@@ -13,40 +13,39 @@ db = Connector.Connector(host="eugenevuong-5t9xqiiq.farm0000.cloud.aperturedata.
 
 # (Assume your global client used for other queries is set up elsewhere if needed.)
 
-def add_video_to_aperture(file_path: str, video_properties: dict):
+def add_video_to_aperture(file_path: str, video_properties: dict, caption: str, embedding: list):
     """
     Upload a video file to ApertureDB.
-    If a caption is not provided, generate one using the video file.
-    Then compute a text embedding for the caption and add both to the video properties.
-    Finally, upload the video.
-    """
-
-    if "id" not in video_properties or not video_properties["id"]:
-        video_properties["id"] = str(generate_numeric_id())
-
-    # Generate a caption if needed.
-    if "caption" not in video_properties or not video_properties["caption"]:
-        print("Generating caption from video...")
-        try:
-            generated_caption = generate_video_caption(file_path)
-            video_properties["caption"] = generated_caption
-            print("Caption generated:", generated_caption)
-        except Exception as e:
-            print("Error generating video caption:", e)
-            video_properties["caption"] = ""
+    This version assumes that a caption and its corresponding embedding
+    have been generated externally and are passed as parameters.
     
-    # Compute the embedding for the caption.
-    if video_properties.get("caption"):
-        try:
-            embedding = generate_text_embedding(video_properties["caption"])
-            # Convert the embedding to a numpy array of type float32 and then to bytes.
-            embedding_bytes = np.array(embedding, dtype='float32').tobytes()
-            # Optionally store the raw embedding for reference.
-            video_properties["caption_embedding"] = embedding
-        except Exception as e:
-            print("Error generating caption embedding:", e)
-            embedding_bytes = b""
-    else:
+    It assigns a unique ID if none is provided, sets the caption,
+    converts the embedding to bytes, updates the video properties,
+    uploads the video, and then adds a descriptor for the video's caption.
+
+    Parameters:
+        file_path (str): Local path to the video file.
+        video_properties (dict): Dictionary of video metadata.
+        caption (str): The caption for the video.
+        embedding (list): The text embedding vector (list of numbers) for the caption.
+    
+    Returns:
+        response, blobs: The response from ApertureDB and any binary data processed.
+    """
+    # Assign a unique ID if none is provided.
+    if "id" not in video_properties or not video_properties["id"]:
+        video_properties["id"] = generate_numeric_id()
+
+    # Use the provided caption.
+    video_properties["caption"] = caption
+    
+    # Convert the provided embedding (list) into bytes.
+    try:
+        embedding_bytes = np.array(embedding, dtype='float32').tobytes()
+        # Optionally store the raw embedding for reference.
+        video_properties["caption_embedding"] = embedding
+    except Exception as e:
+        print("Error converting embedding to bytes:", e)
         embedding_bytes = b""
     
     # Build the JSON query to add the video.
@@ -69,7 +68,7 @@ def add_video_to_aperture(file_path: str, video_properties: dict):
     db.print_last_response()
     
     # Now, add the descriptor for the video's caption to the descriptor set.
-    add_video_descriptor(video_properties.get("id"), video_properties["caption"], embedding_bytes)
+    add_video_descriptor(video_properties.get("id"), caption, embedding_bytes)
     
     return response, blobs
 
@@ -129,3 +128,41 @@ def search_video_by_text(query_text: str, k_neighbors: int = 5, descriptor_set: 
 
 def generate_numeric_id():
     return int(time.time() * 1000) # milliseconds since epoch
+
+def get_caption_for_video(file_path: str) -> str:
+    """
+    Generates a caption for the video at the given file path.
+    
+    Args:
+        file_path (str): The local path to the video file.
+    
+    Returns:
+        str: The generated caption.
+    """
+    try:
+        caption = generate_video_caption(file_path)
+        print("Caption generated:", caption)
+        return caption
+    except Exception as e:
+        print("Error generating video caption:", e)
+        return ""
+
+
+def get_embedding_for_text(text: str) -> list:
+    """
+    Generates a text embedding for the provided text.
+    
+    Args:
+        text (str): The input text for which to generate the embedding.
+    
+    Returns:
+        list: The generated embedding vector.
+    """
+    try:
+        embedding = generate_text_embedding(text)
+        print("Embedding generated for text.")
+        return embedding
+    except Exception as e:
+        print("Error generating text embedding:", e)
+        return []
+

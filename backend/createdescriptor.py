@@ -39,6 +39,6 @@ db.print_last_response()
 
 
 if __name__ == "__main__":
-    query_text = "I expect a package delivery"
+    query_text = "drop off"
     responses, blobs = search_video_by_text(query_text, k_neighbors=5)
     print("Search Results:", responses)
